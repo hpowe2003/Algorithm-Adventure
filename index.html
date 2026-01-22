@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Algorithm Adventure: The Lost Treasure</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #e8f5e9;
+  text-align: center;
+}
+
+h1 { color: #2e7d32; }
+
+#game {
+  display: grid;
+  grid-template-columns: repeat(5, 60px);
+  grid-template-rows: repeat(5, 60px);
+  margin: 20px auto;
+  width: max-content;
+}
+
+.cell {
+  width: 60px;
+  height: 60px;
+  background: #a5d6a7;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #388e3c;
+}
+
+.wall { background: #6d4c41; }
+.treasure { background: #ffd54f; }
+
+#controls button {
+  margin: 5px;
+  padding: 10px;
+}
+
+#algorithm {
+  min-height: 50px;
+  border: 2px dashed #388e3c;
+  padding: 10px;
+  margin: 10px;
+  background: #ffffff;
+}
+
+.block {
+  display: inline-block;
+  padding: 8px;
+  margin: 5px;
+  background: #81c784;
+  border-radius: 5px;
+  cursor: grab;
+}
+
+#palette {
+  margin: 10px;
+}
+
+#message {
+  font-size: 18px;
+  margin-top: 10px;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Algorithm Adventure</h1>
+<p>Level <span id="levelNum"></span> | Score: <span id="score"></span></p>
+
+<div id="game"></div>
+
+<h3>Choose Input Mode</h3>
+<button onclick="setMode('click')">Click Blocks</button>
+<button onclick="setMode('drag')">Drag & Drop</button>
+
+<div id="controls">
+  <button onclick="addCommand('forward')">Move Forward</button>
+  <button onclick="addCommand('left')">Turn Left</button>
+  <button onclick="addCommand('right')">Turn Right</button>
+  <button onclick="runAlgorithm()">Run</button>
+  <button onclick="resetLevel()">Reset</button>
+</div>
+
+<div id="palette">
+  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="forward">Forward</div>
+  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="left">Left</div>
+  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="right">Right</div>
+</div>
+
+<h3>Your Algorithm</h3>
+<div id="algorithm" ondrop="drop(event)" ondragover="allowDrop(event)">
+</div>
+
+<div id="message"></div>
+
+<div id="overlay" class="hidden">
+  <h2 id="overlayText"></h2>
+  <button id="nextBtn" onclick="nextLevel()">Next Level</button>
+  <button id="restartBtn" class="hidden" onclick="restartGame()">Restart Game</button>
+</div>
+
+<script>
+const levels = [
+  {
+    map: [
+      [0,0,0,0,2],
+      [1,1,0,1,1],
+      [0,0,0,0,0],
+      [0,1,1,1,0],
+      [0,0,0,0,0]
+    ],
+    start: {x:0,y:4,dir:0}
+  },
+  {
+    map: [
+      [0,1,0,0,2],
+      [0,1,0,1,1],
+      [0,0,0,0,0],
+      [1,1,1,1,0],
+      [0,0,0,0,0]
+    ],
+    start: {x:0,y:4,dir:1}
+  }
+];
+
+let isRunning = false;
+let level = 0;
+let score = 0;
+let algorithm = [];
+let mode = "click";
+let player;
+
+const game = document.getElementById("game");
+const algoDiv = document.getElementById("algorithm");
+
+function setMode(m) {
+  if (isRunning) return;
+  mode = m;
+}
+
+function loadLevel() {
+  isRunning = false;
+  algorithm = [];
+  algoDiv.innerHTML = "";
+  player = { ...levels[level].start };
+  draw();
+  updateUI();
+}
+
+function resetLevel() {
+  isRunning = false;
+  loadLevel();
+}
+
+function draw() {
+  game.innerHTML = "";
+  const map = levels[level].map;
+  for(let y=0;y<5;y++){
+    for(let x=0;x<5;x++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if(map[y][x] === 1) cell.classList.add("wall");
+      if(map[y][x] === 2) cell.textContent = "💎";
+      if(player.x===x && player.y===y) cell.textContent="🧭";
+      game.appendChild(cell);
+    }
+  }
+}
+
+function addCommand(cmd) {
+  if(mode !== "click") return;
+  algorithm.push(cmd);
+  renderAlgorithm();
+}
+
+function renderAlgorithm() {
+  algoDiv.innerHTML = "";
+  algorithm.forEach(c=>{
+    const b=document.createElement("div");
+    b.className="block";
+    b.textContent=c;
+    algoDiv.appendChild(b);
+  });
+}
+
+function runAlgorithm() {
+  if (isRunning) return;
+
+  isRunning = true;
+  let i = 0;
+  const map = levels[level].map;
+
+  const interval = setInterval(() => {
+    if (i >= algorithm.length) {
+      clearInterval(interval);
+      isRunning = false;
+      return;
+    }
+
+    execute(algorithm[i]);
+    draw();
+
+    if (map[player.y][player.x] === 2) {
+      score += Math.max(10, 50 - algorithm.length * 5);
+      victory();
+      clearInterval(interval);
+      isRunning = false;
+      return;
+    }
+
+    i++;
+  }, 500);
+}
+
+function execute(cmd) {
+  if(cmd==="left") player.dir=(player.dir+3)%4;
+  if(cmd==="right") player.dir=(player.dir+1)%4;
+  if(cmd==="forward"){
+    let nx=player.x, ny=player.y;
+    if(player.dir===0) ny--;
+    if(player.dir===1) nx++;
+    if(player.dir===2) ny++;
+    if(player.dir===3) nx--;
+    if(nx>=0&&ny>=0&&nx<5&&ny<5&&levels[level].map[ny][nx]!==1){
+      player.x=nx; player.y=ny;
+    }
+  }
+}
+
+function victory() {
+  document.getElementById("overlayText").textContent =
+    level === levels.length - 1
+      ? "🏆 You Win the Game!"
+      : "🎉 Level Complete!";
+
+    if (level === levels.length - 1) {
+        document.getElementById("overlay").classList.remove("hidden");
+        document.getElementById("restartBtn").classList.remove("hidden");
+        document.getElementById("nextBtn").classList.add("hidden");
+    } else {
+        document.getElementById("overlay").classList.remove("hidden");
+    }
+}
+
+function nextLevel() {
+  document.getElementById("overlay").classList.add("hidden");
+
+  // Final level → switch buttons, stay on overlay only once
+  if (level === levels.length - 1) {
+    document.getElementById("nextBtn").classList.add("hidden");
+    document.getElementById("restartBtn").classList.remove("hidden");
+    return;
+  }
+
+  level++;
+  loadLevel();
+}
+
+
+function restartGame() {
+  level = 0;
+  score = 0;
+
+  document.getElementById("overlay").classList.add("hidden");
+  document.getElementById("restartBtn").classList.add("hidden");
+  document.getElementById("nextBtn").classList.remove("hidden");
+
+  loadLevel();
+}
+
+function updateUI(){
+  document.getElementById("levelNum").textContent=level+1;
+  document.getElementById("score").textContent=score;
+}
+
+function allowDrop(e){e.preventDefault();}
+function drag(e){e.dataTransfer.setData("cmd",e.target.dataset.cmd);}
+function drop(e) {
+  e.preventDefault();
+  if (mode !== "drag" || isRunning) return;
+
+  const cmd = e.dataTransfer.getData("cmd");
+  algorithm.push(cmd);
+  renderAlgorithm();
+}
+
+loadLevel();
+</script>
+
+</body>
+</html>
