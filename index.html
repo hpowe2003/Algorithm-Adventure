@@ -11,7 +11,9 @@ body {
   text-align: center;
 }
 
-h1 { color: #2e7d32; }
+h1 { color: #2e7d32;
+  font-size: 28px;
+}
 
 #game {
   display: grid;
@@ -86,7 +88,7 @@ h1 { color: #2e7d32; }
 
 <body>
 
-<h1>Algorithm Adventure</h1>
+<h1>Algorithm Adventure: The Lost Treasure</h1>
 <p>Level <span id="levelNum"></span> | Score: <span id="score"></span></p>
 
 <div id="game"></div>
@@ -96,17 +98,22 @@ h1 { color: #2e7d32; }
 <button onclick="setMode('drag')">Drag & Drop</button>
 
 <div id="controls">
-  <button onclick="addCommand('forward')">Move Forward</button>
-  <button onclick="addCommand('left')">Turn Left</button>
-  <button onclick="addCommand('right')">Turn Right</button>
-  <button onclick="runAlgorithm()">Run</button>
-  <button onclick="resetLevel()">Reset</button>
+  <div id="clickControls">
+    <button onclick="addCommand('Forward')">Move Forward</button>
+    <button onclick="addCommand('Left')">Turn Left</button>
+    <button onclick="addCommand('Right')">Turn Right</button>
+  </div>
+
+  <div id="runControls">
+    <button onclick="runAlgorithm()">Run</button>
+    <button onclick="resetLevel()">Reset</button>
+  </div>
 </div>
 
 <div id="palette">
-  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="forward">Forward</div>
-  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="left">Left</div>
-  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="right">Right</div>
+  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="Forward">Forward</div>
+  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="Left">Left</div>
+  <div class="block" draggable="true" ondragstart="drag(event)" data-cmd="Right">Right</div>
 </div>
 
 <h3>Your Algorithm</h3>
@@ -157,8 +164,21 @@ const algoDiv = document.getElementById("algorithm");
 
 function setMode(m) {
   if (isRunning) return;
+
   mode = m;
+
+  const clickControls = document.getElementById("clickControls");
+  const palette = document.getElementById("palette");
+
+  if (mode === "click") {
+    clickControls.style.display = "block";
+    palette.style.display = "none";
+  } else {
+    clickControls.style.display = "none";
+    palette.style.display = "block";
+  }
 }
+
 
 function loadLevel() {
   isRunning = false;
@@ -183,7 +203,11 @@ function draw() {
       cell.className = "cell";
       if(map[y][x] === 1) cell.classList.add("wall");
       if(map[y][x] === 2) cell.textContent = "💎";
-      if(player.x===x && player.y===y) cell.textContent="🧭";
+      if (player.x === x && player.y === y) {
+  const dirs = ["⬆️", "➡️", "⬇️", "⬅️"];
+  cell.textContent = dirs[player.dir];
+}
+
       game.appendChild(cell);
     }
   }
@@ -235,9 +259,9 @@ function runAlgorithm() {
 }
 
 function execute(cmd) {
-  if(cmd==="left") player.dir=(player.dir+3)%4;
-  if(cmd==="right") player.dir=(player.dir+1)%4;
-  if(cmd==="forward"){
+  if(cmd==="Left") player.dir=(player.dir+3)%4;
+  if(cmd==="Right") player.dir=(player.dir+1)%4;
+  if(cmd==="Forward"){
     let nx=player.x, ny=player.y;
     if(player.dir===0) ny--;
     if(player.dir===1) nx++;
@@ -307,6 +331,8 @@ function drop(e) {
 }
 
 loadLevel();
+setMode("click");
+
 </script>
 
 </body>
